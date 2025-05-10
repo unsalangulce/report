@@ -1,0 +1,124 @@
+ 1. Introduction
+This report describes the initial steps in the analysis of a single-cell RNA sequencing (scRNA-seq) dataset, focusing on data loading, quality control, and doublet removal.
+2. Setup and Data Loading
+2.1. Library Import and Settings
+The analysis was conducted using the Scanpy (1.10.4), and scvi-tools libraries in Python. Necessary Python libraries are imported. For single-cell RNA-seq analysis, the Scanpy and scvi-tools libraries have been used. Also, this single-cell RNA-seq data is loaded from an h5ad file.
+Terminal Output:
+Libraries imported and Scanpy settings configured.
+scanpy==1.10.4 anndata==0.11.3 umap==0.5.7 numpy==2.1.3 scipy==1.15.1 pandas==2.2.3 scikit-learn==1.6.1 statsmodels==0.14.4 python-igraph==NA leidenalg==NA
+2.2. Data Loading
+The dataset was loaded from the H5AD file: SCP2745_high_conf_CAS_cell_types.h5ad
+The data is transposed (.T) so that cells are represented in rows and genes in columns.   
+Terminal Output:
+Successfully loaded: SCP2745_high_conf_CAS_cell_types.h5ad
+AnnData object summary:
+The dataset comprises 4000 cells and 33538 genes/features.
+
+2.3. Initial Data Matrix Inspection
+The data matrix adata.X has a shape of (4000, 33538).
+adata.X.shape is a command used within the Scanpy library to determine the dimensions of the gene expression matrix within an AnnData object.   
+adata.X refers to the gene expression data within the AnnData object.   
+This data is typically in the format of a numpy array or a sparse matrix.   
+In this matrix: Rows represent cells. Columns represent genes.
+adata.X.shape returns the dimensions (shape) of the adata.X matrix (number of cells x number of genes).   
+Terminal Output:
+(4000, 33538)
+3. Quality Control (QC) and Filtering
+3.1. Gene Filtering
+Genes expressed in fewer than 10 cells were filtered out.
+Terminal Output:
+(Output of sc.pp.filter_genes not directly captured, but adata is modified in place)
+3.2. Highly Variable Gene Selection
+2000	hly variable genes were selected using the seurat_v3 method.
+ 
+4. Doublet Removal
+Doublets were predicted and removed using scvi-tools's SOLO method.
+4.1. scVI Model Training
+An scVI model was trained on the filtered data.
+4.2. SOLO Model Training and Prediction
+A SOLO model was trained to predict doublets, and then predictions were made.
+The SOLO model training stopped early due to lack of improvement in validation loss.
+4.3. Doublet Classification
+The SOLO model classified cells as singlets or doublets.
+Doublet Removal
+a. scvi-tools Installation and Usage 
+o	The scvi-tools library is installed. scvi-tools is a Python package for probabilistic modeling and analysis of single-cell omics data.   
+o	A variational autoencoder (VAE) model is defined using scvi.model.SCVI(adata).   
+o	An additional model, SOLO, is created to identify doublets (instances where two cells are erroneously captured as one).   
+o	Vae.train() is executed to reduce noise in the data and correct for batch effects, enabling the model to learn a statistically meaningful representation of cells.   
+b. Doublet Detection 
+o	Gene filtering (min_cells=10): Genes expressed in fewer than 10 cells are removed.   
+o	Highly variable gene selection (n_top_genes=2000): The 2000 most variable genes are selected for downstream analysis.   
+c. SOLO Doublet Removal 
+o	Doublet prediction results are processed.   
+o	Cells identified as doublets are removed from the dataset.   
+Terminal Output:
+doublet   singlet prediction
+ACAGAAAAGGGAGGAC 5.365032e-02 0.946350 singlet GGGTTATGTGGAACAC 6.602147e-02 0.933978 singlet TGAGGAGTCCATTTCA 1.380594e-02 0.986194 singlet CCTTTGGAGGAGTATT 9.305502e-01 0.069450 doublet GAATCGTGTCAACATC 3.640850e-07 1.000000 singlet ... ... ... ... GTAACACTCCTGGGTG 9.088891e-02 0.909111 singlet GAGATGGTCCCAGCGA 5.978004e-02 0.940220 singlet AGATCCAAGTTTAGGA 2.914435e-02 0.970856 singlet TGAGTCAAGGTGGTTG 3.333474e-03 0.996666 singlet CGTAAGTAGCTAGATA 9.774153e-01 0.022585 doublet
+[4000 rows x 3 columns]
+4.4. Doublet Summary
+A total of 327 cells were predicted to be doublets, while 3673 were classified as singlets.
+4.5. Impact of Doublet Filtering
+The doublet filtering step reduced the number of cells from 4000 to 3673, focusing subsequent analysis on high-quality singlets. This represents a removal of 327 cells identified as doublets.
+Terminal Output:
+prediction doublet 327 327 singlet 3673 3673
+
+5. Dimensionality Reduction
+5.1. Principal Component Analysis (PCA)
+PCA was performed on the filtered data to reduce dimensionality.
+a. Normalization
+Cells are normalized to a total of 10,000 counts.   
+Data is log-transformed.   
+The original data is saved as adata.raw.   
+b.Preprocessing
+1)Mitochondrial and Ribosomal Gene Marking 
+o	Mitochondrial genes are labeled, often by identifying gene names starting with "MT-".   
+o	Ribosomal genes are marked by matching against a list of known ribosomal genes.   
+2) Quality Control (QC) Metric Calculation 
+o	Quality control metrics for cells are calculated (e.g., percentage of mitochondrial genes).   
+3) Cell and Gene Filtering 
+o	Genes expressed in a small number of cells are removed.   
+o	Cells with a high number of genes or a high percentage of mitochondrial/ribosomal genes are removed.   
+
+5.2. UMAP Embedding
+UMAP embedding was computed for visualization of the cells in a 2dimensional space.
+Terminal Output:
+computing UMAP finished: added 'X_umap', UMAP coordinates (adata.obsm) (0:00:07)
+UMAP coordinates were computed and stored in adata.obsm['X_umap'].
+6. Neighborhood Graph and Clustering
+6.1. Neighborhood Graph
+A neighborhood graph was computed based on the PCA representation of the cells.
+ 
+6.2. Leiden Clustering
+Cells were clustered using the Leiden algorithm, based on the neighborhood graph. 7. Clustering
+a. PCA and Neighborhood Calculation 
+o	Principal Component Analysis (PCA) is performed for dimensionality reduction.   
+o	A neighborhood graph is constructed.   
+b. UMAP and Leiden Algorithm 
+o	UMAP (Uniform Manifold Approximation and Projection) is used for data visualization.   
+o	The Leiden algorithm is employed to identify cell clusters. The Leiden algorithm is a community detection algorithm used to find clusters in large networks.   
+
+ 
+7. Visualization
+7.1. UMAP Visualization of Clusters
+The clustered data was visualized on a UMAP plot, where each point represents a cell and is colored according to its Leiden cluster assignment.
+Results Visualization
+Cell types are visualized using a UMAP plot.
+ 
+Dataset: SCP2745_high_conf_CAS_cell_types.h5ad Date of Analysis: (Generated from Notebook - Replace with actual date) Analysis Tool: Scanpy, scvi-tools (via Python)
+
+8. Analysis: Initial Marker Gene Identification
+The notebook begins the analysis phase by looking for marker genes that are characteristic of each cluster.
+ Marker Gene Identification
+Marker genes that distinguish each cluster are identified.   
+These marker genes are saved in a data frame.   
+
+8.1. Calculating doublet score difference
+The notebook calculates the difference between doublet and singlet scores, and adds it to adata.obs as dif.
+Terminal Output:
+•	(Output of df['dif'] = df.doublet - df.singlet not directly printed, but adata.obs is modified)
+•	8.2. Visualization of doublet score difference
+•	A plot is generated to show the distribution of the doublet score difference.
+•	(Note: The plot is generated using seaborn and matplotlib. Again, I can't include the plot itself, but the report should reference its location.)
+•	8.3. Marker Gene Identification
+•	Initial steps towards marker gene identification were taken using sc.tl.rank_genes_groups.
